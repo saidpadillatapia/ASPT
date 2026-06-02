@@ -13,7 +13,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('type'); // mensaje, multa, asamblea, pago_atrasado
             $table->string('title');
-            $table->text('description');
+            $table->text('description')->nullable();
             $table->boolean('read')->default(false);
             $table->timestamps();
         });
