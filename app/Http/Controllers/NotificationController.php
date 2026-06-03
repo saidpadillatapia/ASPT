@@ -43,6 +43,21 @@ class NotificationController extends Controller
         return response()->json(['success' => true]);
     }
 
+    // Ver detalle de una notificación
+    public function show(int $id): JsonResponse
+    {
+        $notif = Notification::where('user_id', Auth::id())
+            ->where('id', $id)
+            ->firstOrFail();
+
+        // Marcar como leída al ver detalle
+        if (!$notif->read) {
+            $notif->update(['read' => true]);
+        }
+
+        return response()->json($notif);
+    }
+
     // Crear notificación (para pruebas)
     public function store(Request $request): JsonResponse
     {
@@ -63,5 +78,15 @@ class NotificationController extends Controller
         broadcast(new NotificationCreated($notif));
 
         return response()->json($notif, 201);
+    }
+
+    // Obtener lista de usuarios (para admin)
+    public function users(): JsonResponse
+    {
+        $users = \App\Models\User::where('id', '!=', Auth::id())
+            ->select('id', 'name', 'email', 'role')
+            ->get();
+
+        return response()->json($users);
     }
 }

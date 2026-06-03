@@ -22,6 +22,8 @@ Route::middleware('auth')->group(function () {
     // Notificaciones
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+    Route::get('/notifications/{id}', [NotificationController::class, 'show']);
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
     Route::post('/notifications', [NotificationController::class, 'store']);
+    Route::get('/users', [NotificationController::class, 'users']);
 });
