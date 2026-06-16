@@ -35,6 +35,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
     Route::post('/email/resend', [AuthController::class, 'resendVerification']);
+    Route::post('/change-password', [AuthController::class, 'changePassword']);
 
     // --- CHAT (todos los usuarios autenticados) ---
     Route::get('/messages', [ChatController::class, 'index']);

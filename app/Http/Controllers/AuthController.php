@@ -60,16 +60,18 @@ class AuthController extends Controller
      * LOGIN DE USUARIO
      * 
      * Autentica al usuario y devuelve un token Bearer de Sanctum.
-     * Este token se debe enviar en el header: Authorization: Bearer {token}
+     * Cada dispositivo obtiene su propio token (sesión múltiple).
+     * El nombre del token identifica el dispositivo/navegador.
      * 
      * POST /api/login
-     * Body: { email, password }
+     * Body: { email, password, device_name? }
      */
     public function login(Request $request): JsonResponse
     {
         $request->validate([
             'email' => 'required|email',
             'password' => 'required|string',
+            'device_name' => 'nullable|string|max:255',
         ]);
 
         // Buscar el usuario por email
@@ -88,11 +90,10 @@ class AuthController extends Controller
             ], 403);
         }
 
-        // Eliminar tokens anteriores (solo permite una sesión activa)
-        $user->tokens()->delete();
-
-        // Crear nuevo token con el rol como ability
-        $token = $user->createToken('auth-token', [$user->role])->plainTextToken;
+        // Crear token por dispositivo (NO elimina tokens anteriores)
+        // Así el usuario puede tener sesión en múltiples dispositivos
+        $deviceName = $request->device_name ?? $this->getDeviceName($request);
+        $token = $user->createToken($deviceName, [$user->role])->plainTextToken;
 
         return response()->json([
             'message' => 'Inicio de sesión exitoso',
@@ -105,6 +106,21 @@ class AuthController extends Controller
             ],
             'token' => $token,
         ]);
+    }
+
+    /**
+     * Genera un nombre de dispositivo basado en el User-Agent
+     */
+    private function getDeviceName(Request $request): string
+    {
+        $userAgent = $request->header('User-Agent', 'unknown');
+
+        if (str_contains($userAgent, 'Mobile')) return 'mobile-browser';
+        if (str_contains($userAgent, 'Chrome')) return 'chrome';
+        if (str_contains($userAgent, 'Firefox')) return 'firefox';
+        if (str_contains($userAgent, 'Safari')) return 'safari';
+
+        return 'web-browser';
     }
 
     /**
@@ -191,5 +207,41 @@ class AuthController extends Controller
         $user->markEmailAsVerified();
 
         return response()->json(['message' => 'Correo verificado exitosamente. Ya puedes iniciar sesión.']);
+    }
+
+    /**
+     * CAMBIAR CONTRASEÑA
+     * 
+     * Cambia la contraseña del usuario y CIERRA SESIÓN EN TODOS LOS DISPOSITIVOS
+     * (elimina todos los tokens del usuario). El usuario deberá volver a iniciar sesión.
+     * 
+     * POST /api/change-password
+     * Header: Authorization: Bearer {token}
+     * Body: { current_password, new_password, new_password_confirmation }
+     */
+    public function changePassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'current_password' => 'required|string',
+            'new_password' => 'required|string|min:8|confirmed', // requiere new_password_confirmation
+        ]);
+
+        $user = $request->user();
+
+        // Verificar que la contraseña actual sea correcta
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json(['message' => 'La contraseña actual es incorrecta'], 422);
+        }
+
+        // Actualizar la contraseña
+        $user->password = $request->new_password; // Se hashea automáticamente por el cast
+        $user->save();
+
+        // CERRAR SESIÓN EN TODOS LOS DISPOSITIVOS (eliminar TODOS los tokens)
+        $user->tokens()->delete();
+
+        return response()->json([
+            'message' => 'Contraseña actualizada exitosamente. Se cerró sesión en todos los dispositivos. Inicia sesión nuevamente.',
+        ]);
     }
 }
