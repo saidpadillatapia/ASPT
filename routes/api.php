@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\PasswordResetController;
 
 /*
 |--------------------------------------------------------------------------
@@ -21,6 +22,11 @@ Route::post('/login', [AuthController::class, 'login']);
 // Verificación de email - el usuario hace clic en el link del correo
 Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
     ->name('verification.verify');
+
+// Recuperación de contraseña (código de 6 dígitos por correo)
+Route::post('/password/send-code', [PasswordResetController::class, 'sendCode']);
+Route::post('/password/verify-code', [PasswordResetController::class, 'verifyCode']);
+Route::post('/password/reset', [PasswordResetController::class, 'resetPassword']);
 
 /*
 |--------------------------------------------------------------------------

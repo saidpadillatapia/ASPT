@@ -36,4 +36,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, $request) {
             return response()->json(['message' => 'No autenticado'], 401);
         });
+
+        // Cuando una ruta no existe, responder con JSON 404
+        $exceptions->render(function (\Symfony\Component\Routing\Exception\RouteNotFoundException $e, $request) {
+            return response()->json(['message' => 'No autenticado'], 401);
+        });
     })->create();
